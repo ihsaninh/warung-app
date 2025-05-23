@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { z } from 'zod';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -14,41 +15,41 @@ import {
 } from '~/components/ui/select';
 import { Text } from '~/components/ui/text';
 import { Textarea } from '~/components/ui/textarea';
+import {
+  useDistricts,
+  useProvinces,
+  useRegencies,
+  useSubdistricts,
+} from '~/lib/hooks/useWilayah';
 
-const provinces = [
-  { value: 'jabar', label: 'Jawa Barat' },
-  { value: 'jateng', label: 'Jawa Tengah' },
-];
-const cities = [
-  { label: 'Bandung', value: 'bandung' },
-  { label: 'Cimahi', value: 'cimahi' },
-];
-const districts = [
-  { label: 'Coblong', value: 'coblong' },
-  { label: 'Sukajadi', value: 'sukajadi' },
-];
-const subDistricts = [
-  { label: 'Dago', value: 'dago' },
-  { label: 'Cipaganti', value: 'cipaganti' },
-];
+interface WilayahItem {
+  id: string;
+  value: string;
+}
 
-const phoneRegex = /^\+62\d{9,13}$/;
+const phoneRegex = /^(\+62|62|0)8[1-9]\d{6,10}$/;
 
 const storeSchema = z.object({
   name: z.string().min(1, 'Nama toko wajib diisi'),
   phone: z
     .string()
-    .regex(phoneRegex, 'Nomor HP harus format Indonesia, contoh: +6281234567890'),
+    .regex(phoneRegex, 'Nomor HP harus format Indonesia, contoh: 081234567890'),
   email: z.string().email('Email tidak valid'),
   description: z.string().optional(),
   address: z.string().min(1, 'Alamat wajib diisi'),
-  province: z.object({ value: z.string().min(1, 'Pilih provinsi'), label: z.string() }),
-  city: z.object({ value: z.string().min(1, 'Pilih kota'), label: z.string() }),
-  district: z.object({ value: z.string().min(1, 'Pilih kecamatan'), label: z.string() }),
-  sub_district: z.object({
-    value: z.string().min(1, 'Pilih kelurahan'),
-    label: z.string(),
-  }),
+  province_id: z.union([
+    z.string().min(1, 'Pilih provinsi'),
+    z.number().int().positive(),
+  ]),
+  city_id: z.union([z.string().min(1, 'Pilih kota'), z.number().int().positive()]),
+  district_id: z.union([
+    z.string().min(1, 'Pilih kecamatan'),
+    z.number().int().positive(),
+  ]),
+  sub_district_id: z.union([
+    z.string().min(1, 'Pilih kelurahan'),
+    z.number().int().positive(),
+  ]),
   photo_url: z.string().optional(),
 });
 
@@ -58,6 +59,8 @@ export default function RegisterStore() {
   const {
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<StoreForm>({
     resolver: zodResolver(storeSchema),
@@ -67,19 +70,87 @@ export default function RegisterStore() {
       email: '',
       description: '',
       address: '',
-      province: { value: '', label: '' },
-      city: { value: '', label: '' },
-      district: { value: '', label: '' },
-      sub_district: { value: '', label: '' },
+      province_id: '',
+      city_id: '',
+      district_id: '',
+      sub_district_id: '',
       photo_url: '',
     },
   });
+
   const [loading, setLoading] = useState(false);
+
+  const selectedProvinceId = watch('province_id');
+  const selectedCityId = watch('city_id');
+  const selectedDistrictId = watch('district_id');
+  const photoUrl = watch('photo_url');
+
+  const { data: provinces = [], isLoading: isLoadingProvinces } = useProvinces();
+
+  const { data: cities = [], isLoading: isLoadingCities } = useRegencies(
+    selectedProvinceId ? Number(selectedProvinceId) : undefined,
+  );
+
+  const { data: districts = [], isLoading: isLoadingDistricts } = useDistricts(
+    selectedProvinceId ? Number(selectedProvinceId) : undefined,
+    selectedCityId ? Number(selectedCityId) : undefined,
+  );
+  const { data: subDistricts = [], isLoading: isLoadingSubDistricts } = useSubdistricts(
+    selectedProvinceId ? Number(selectedProvinceId) : undefined,
+    selectedCityId ? Number(selectedCityId) : undefined,
+    selectedDistrictId ? Number(selectedDistrictId) : undefined,
+  );
+
+  const findItemById = (items: WilayahItem[], id: string | number) => {
+    const found = items.find((item) => item.id === id);
+    return found ? { value: found.id, label: found.value } : undefined;
+  };
+
+  useEffect(() => {
+    setValue('city_id', '');
+    setValue('district_id', '');
+    setValue('sub_district_id', '');
+  }, [selectedProvinceId, setValue]);
+
+  useEffect(() => {
+    setValue('district_id', '');
+    setValue('sub_district_id', '');
+  }, [selectedCityId, setValue]);
+
+  useEffect(() => {
+    setValue('sub_district_id', '');
+  }, [selectedDistrictId, setValue]);
+
+  const pickImage = async () => {
+    if (Platform.OS === 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Maaf, kami memerlukan izin galeri untuk memilih foto.');
+        return;
+      }
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setValue('photo_url', result.assets[0].uri);
+    }
+  };
 
   const onSubmit = (data: StoreForm) => {
     console.log(data);
     setLoading(true);
-    // TODO: handle store registration
+    // Check If user upload the store image or not
+    // IF yes Perform the upload file to supabase storage: - bucket name product-image
+    // After that getting the image and get the url image from supabase
+    // Insert store data to stores table
+
+    // If not Insert store data to stores table
     setLoading(false);
   };
 
@@ -120,7 +191,7 @@ export default function RegisterStore() {
               name="phone"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  placeholder="Contoh: +6281234567890"
+                  placeholder="Contoh: 081234567890"
                   keyboardType="phone-pad"
                   value={value}
                   onChangeText={onChange}
@@ -187,114 +258,169 @@ export default function RegisterStore() {
             <Text>Provinsi</Text>
             <Controller
               control={control}
-              name="province"
+              name="province_id"
               render={({ field: { onChange, value } }) => (
-                <Select value={value.value ? value : undefined} onValueChange={onChange}>
+                <Select
+                  value={findItemById(provinces, value)}
+                  onValueChange={(selectedOption) => {
+                    onChange(selectedOption ? selectedOption.value : '');
+                  }}
+                  disabled={isLoadingProvinces}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih Provinsi" />
+                    <SelectValue
+                      placeholder={isLoadingProvinces ? 'Memuat...' : 'Pilih Provinsi'}
+                    />
                   </SelectTrigger>
-                  <SelectContent>
-                    {provinces.map((item) => (
-                      <SelectItem key={item.value} value={item.value} label={item.label}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="w-2/4">
+                    <ScrollView className="max-h-56">
+                      {provinces.map((item: WilayahItem) => (
+                        <SelectItem key={item.id} value={item.id} label={item.value}>
+                          {item.value}
+                        </SelectItem>
+                      ))}
+                    </ScrollView>
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.province && (
-              <Text className="text-sm text-red-500">{errors.province.message}</Text>
+            {errors.province_id && (
+              <Text className="text-sm text-red-500">{errors.province_id.message}</Text>
             )}
 
             <Text>Kota/Kabupaten</Text>
             <Controller
               control={control}
-              name="city"
+              name="city_id"
               render={({ field: { onChange, value } }) => (
-                <Select value={value.value ? value : undefined} onValueChange={onChange}>
+                <Select
+                  value={findItemById(cities, value)}
+                  onValueChange={(selectedOption) => {
+                    onChange(selectedOption ? selectedOption.value : '');
+                  }}
+                  disabled={!selectedProvinceId || isLoadingCities}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih Kota/Kabupaten" />
+                    <SelectValue
+                      placeholder={
+                        isLoadingCities
+                          ? 'Memuat...'
+                          : !selectedProvinceId
+                            ? 'Pilih Provinsi terlebih dahulu'
+                            : 'Pilih Kota/Kabupaten'
+                      }
+                    />
                   </SelectTrigger>
-                  <SelectContent>
-                    {cities.map((item) => (
-                      <SelectItem key={item.value} value={item.value} label={item.label}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="w-2/4">
+                    <ScrollView className="max-h-56">
+                      {cities.map((item: WilayahItem) => (
+                        <SelectItem key={item.id} value={item.id} label={item.value}>
+                          {item.value}
+                        </SelectItem>
+                      ))}
+                    </ScrollView>
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.city && (
-              <Text className="text-sm text-red-500">{errors.city.message}</Text>
+            {errors.city_id && (
+              <Text className="text-sm text-red-500">{errors.city_id.message}</Text>
             )}
 
             <Text>Kecamatan</Text>
             <Controller
               control={control}
-              name="district"
+              name="district_id"
               render={({ field: { onChange, value } }) => (
-                <Select value={value.value ? value : undefined} onValueChange={onChange}>
+                <Select
+                  value={findItemById(districts, value)}
+                  onValueChange={(selectedOption) => {
+                    onChange(selectedOption ? selectedOption.value : '');
+                  }}
+                  disabled={!selectedCityId || isLoadingDistricts}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih Kecamatan" />
+                    <SelectValue
+                      placeholder={
+                        isLoadingDistricts
+                          ? 'Memuat...'
+                          : !selectedCityId
+                            ? 'Pilih Kota/Kabupaten terlebih dahulu'
+                            : 'Pilih Kecamatan'
+                      }
+                    />
                   </SelectTrigger>
-                  <SelectContent>
-                    {districts.map((item) => (
-                      <SelectItem key={item.value} value={item.value} label={item.label}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="w-2/4">
+                    <ScrollView className="max-h-56">
+                      {districts.map((item: WilayahItem) => (
+                        <SelectItem key={item.id} value={item.id} label={item.value}>
+                          {item.value}
+                        </SelectItem>
+                      ))}
+                    </ScrollView>
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.district && (
-              <Text className="text-sm text-red-500">{errors.district.message}</Text>
+            {errors.district_id && (
+              <Text className="text-sm text-red-500">{errors.district_id.message}</Text>
             )}
 
             <Text>Kelurahan</Text>
             <Controller
               control={control}
-              name="sub_district"
+              name="sub_district_id"
               render={({ field: { onChange, value } }) => (
-                <Select value={value.value ? value : undefined} onValueChange={onChange}>
+                <Select
+                  value={findItemById(subDistricts, value)}
+                  onValueChange={(selectedOption) => {
+                    onChange(selectedOption ? selectedOption.value : '');
+                  }}
+                  disabled={!selectedDistrictId || isLoadingSubDistricts}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih Kelurahan" />
+                    <SelectValue
+                      placeholder={
+                        isLoadingSubDistricts
+                          ? 'Memuat...'
+                          : !selectedDistrictId
+                            ? 'Pilih Kecamatan terlebih dahulu'
+                            : 'Pilih Kelurahan'
+                      }
+                    />
                   </SelectTrigger>
-                  <SelectContent>
-                    {subDistricts.map((item) => (
-                      <SelectItem key={item.value} value={item.value} label={item.label}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="w-2/4">
+                    <ScrollView className="max-h-56">
+                      {subDistricts.map((item: WilayahItem) => (
+                        <SelectItem key={item.id} value={item.id} label={item.value}>
+                          {item.value}
+                        </SelectItem>
+                      ))}
+                    </ScrollView>
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.sub_district && (
-              <Text className="text-sm text-red-500">{errors.sub_district.message}</Text>
+            {errors.sub_district_id && (
+              <Text className="text-sm text-red-500">
+                {errors.sub_district_id.message}
+              </Text>
             )}
 
             <Text>Foto Toko</Text>
-            <Controller
-              control={control}
-              name="photo_url"
-              render={({ field: { value } }) => (
-                <TouchableOpacity
-                  className="h-24 w-24 items-center justify-center rounded-md border"
-                  onPress={() => {
-                    // TODO: handle photo upload
-                  }}
-                >
-                  {value ? (
-                    <Image source={{ uri: value }} className="h-24 w-24 rounded-md" />
-                  ) : (
-                    <Text>Pilih Foto</Text>
-                  )}
-                </TouchableOpacity>
+            <TouchableOpacity
+              className="h-24 w-24 items-center justify-center rounded-md border"
+              onPress={pickImage}
+            >
+              {photoUrl ? (
+                <Image source={{ uri: photoUrl }} className="h-24 w-24 rounded-md" />
+              ) : (
+                <Text>Pilih Foto</Text>
               )}
-            />
+            </TouchableOpacity>
+            {errors.photo_url && (
+              <Text className="text-sm text-red-500">{errors.photo_url.message}</Text>
+            )}
           </View>
           <Button className="mt-8" onPress={handleSubmit(onSubmit)} disabled={loading}>
             <Text className="font-bold">{loading ? 'Menyimpan...' : 'Simpan Toko'}</Text>
