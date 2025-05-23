@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ROUTES } from '~/lib/constants/routes';
-import { useAuth } from '~/lib/context/AuthContext';
+import { useAuth } from '~/lib/contexts/AuthContext';
 import { supabase } from '~/lib/utils/supabase';
 
 function isAuthPage(pathname: string) {

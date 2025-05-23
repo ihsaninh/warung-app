@@ -6,12 +6,12 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { Platform } from 'react-native';
-import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
 import { NAV_THEME } from '~/lib/constants/constants';
-import { AuthProvider } from '~/lib/context/AuthContext';
-import { AuthGuard } from '~/lib/guard/AuthGuard';
+import { AuthProvider } from '~/lib/contexts/AuthContext';
+import { AuthGuard } from '~/lib/guards/AuthGuard';
 import { useColorScheme } from '~/lib/hooks/useColorScheme';
-import { QueryClientProvider, queryClient } from '~/lib/react-query';
+import { QueryClientProvider, queryClient } from '~/lib/providers/ReactQueryProvider';
+import { setAndroidNavigationBar } from '~/lib/utils/android-navigation-bar';
 
 const LIGHT_THEME: Theme = {
   ...DefaultTheme,

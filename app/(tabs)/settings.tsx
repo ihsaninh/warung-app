@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { Button } from '~/components/ui/button';
-import { useAuth } from '~/lib/context/AuthContext';
+import { useAuth } from '~/lib/contexts/AuthContext';
 import { supabase } from '~/lib/utils/supabase';
 
 export default function Settings() {
