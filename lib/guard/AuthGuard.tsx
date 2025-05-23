@@ -1,9 +1,8 @@
-import React from 'react';
-import { useAuth } from '~/lib/AuthContext';
-import { useRouter, usePathname } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { supabase } from '~/lib/utils/supabase';
+import { usePathname, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { ROUTES } from '~/lib/constants/routes';
+import { useAuth } from '~/lib/context/AuthContext';
+import { supabase } from '~/lib/utils/supabase';
 
 function isAuthPage(pathname: string) {
   return pathname === ROUTES.login || pathname === ROUTES.signup;
@@ -42,7 +41,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        if (userProfile?.store_id && (isAuthPage(pathname) || isRegisterStorePage(pathname))) {
+        if (
+          userProfile?.store_id &&
+          (isAuthPage(pathname) || isRegisterStorePage(pathname))
+        ) {
           router.replace(ROUTES.dashboard);
           setChecking(false);
           return;

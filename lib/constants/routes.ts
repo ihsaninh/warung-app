@@ -3,4 +3,4 @@ export const ROUTES = {
   login: '/login',
   signup: '/signup',
   registerStore: '/register-store',
-} as const; 
+} as const;

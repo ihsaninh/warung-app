@@ -1,14 +1,14 @@
-import { View } from 'react-native';
-import { Input } from '~/components/ui/input';
-import { Button } from '~/components/ui/button';
-import { Text } from '~/components/ui/text';
-import { useForm, Controller } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { supabase } from '~/lib/utils/supabase';
+import React, { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { View } from 'react-native';
+import { z } from 'zod';
+import { Button } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
+import { Text } from '~/components/ui/text';
 import { ROUTES } from '~/lib/constants/routes';
+import { supabase } from '~/lib/utils/supabase';
 
 const signupSchema = z.object({
   email: z.string().email({ message: 'Email tidak valid' }),
@@ -40,7 +40,7 @@ export default function Signup() {
       email,
       password,
       options: {
-        emailRedirectTo: 'warungapp://login'
+        emailRedirectTo: 'warungapp://login',
       },
     });
     setLoading(false);
@@ -52,8 +52,8 @@ export default function Signup() {
   };
 
   return (
-    <View className="flex-1 justify-center px-6 gap-4">
-      <Text className="text-2xl font-bold mb-4">Daftar Akun</Text>
+    <View className="flex-1 justify-center gap-4 px-6">
+      <Text className="mb-4 text-2xl font-bold">Daftar Akun</Text>
       <View className="mb-2">
         <Text className="mb-1">Email</Text>
         <Controller
@@ -72,7 +72,7 @@ export default function Signup() {
           )}
         />
         {errors.email && (
-          <Text className="text-red-500 mt-1 text-sm">{errors.email.message}</Text>
+          <Text className="mt-1 text-sm text-red-500">{errors.email.message}</Text>
         )}
       </View>
       <View className="mb-2">
@@ -91,17 +91,19 @@ export default function Signup() {
           )}
         />
         {errors.password && (
-          <Text className="text-red-500 mt-1 text-sm">{errors.password.message}</Text>
+          <Text className="mt-1 text-sm text-red-500">{errors.password.message}</Text>
         )}
       </View>
-      {message && <Text className="text-green-600 text-center mb-2">{message}</Text>}
-      {error && <Text className="text-red-500 text-center mb-2">{error}</Text>}
+      {message && <Text className="mb-2 text-center text-green-600">{message}</Text>}
+      {error && <Text className="mb-2 text-center text-red-500">{error}</Text>}
       <Button onPress={handleSubmit(onSubmit)} disabled={loading}>
         <Text>{loading ? 'Mendaftar...' : 'Daftar'}</Text>
       </Button>
-      <View className="flex-row justify-center mt-4">
+      <View className="mt-4 flex-row justify-center">
         <Text>Sudah punya akun? </Text>
-        <Text className="text-blue-500" onPress={() => router.push(ROUTES.login)}>Login</Text>
+        <Text className="text-blue-500" onPress={() => router.push(ROUTES.login)}>
+          Login
+        </Text>
       </View>
     </View>
   );

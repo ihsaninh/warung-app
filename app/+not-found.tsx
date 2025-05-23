@@ -1,4 +1,5 @@
 import { Link, Stack } from 'expo-router';
+import React from 'react';
 import { View } from 'react-native';
 import { Text } from '~/components/ui/text';
 
@@ -9,7 +10,7 @@ export default function NotFoundScreen() {
       <View>
         <Text>This screen doesn't exist.</Text>
 
-        <Link href='/'>
+        <Link href="/">
           <Text>Go to home screen!</Text>
         </Link>
       </View>

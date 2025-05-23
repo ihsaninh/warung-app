@@ -1,7 +1,7 @@
-import { Text, View } from "react-native";
-import { Button } from "~/components/ui/button";
-import { useAuth } from "~/lib/AuthContext";
-import { supabase } from "~/lib/utils/supabase";
+import { Text, View } from 'react-native';
+import { Button } from '~/components/ui/button';
+import { useAuth } from '~/lib/context/AuthContext';
+import { supabase } from '~/lib/utils/supabase';
 
 export default function Settings() {
   const { refresh } = useAuth();
@@ -10,10 +10,10 @@ export default function Settings() {
     refresh();
   };
   return (
-    <View className="flex-1 justify-center items-center gap-4">
-      <Text className="text-2xl font-bold mb-4">Settings</Text>
+    <View className="flex-1 items-center justify-center gap-4">
+      <Text className="mb-4 text-2xl font-bold">Settings</Text>
       <Button onPress={handleLogout} className="bg-red-500">
-        <Text className="text-white font-bold">Logout</Text>
+        <Text className="font-bold text-white">Logout</Text>
       </Button>
     </View>
   );
